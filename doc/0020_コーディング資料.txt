@@ -1,0 +1,142 @@
+コーディング資料
+￣￣￣￣￣￣￣￣
+
+■ はじめに
+　絵画マネージャのコーディングのために検討した内容を記す。
+
+
+■ コンセプト
+■ 限界
+　別資料 "0010_コンセプト.txt" を参照のこと。
+
+
+■ できること
+　[1] 通し番号検索（画像ファイルを入力して番号を検索）
+　[2] 画像　　検索（番号を入力して画像ファイルを出力）
+　[3] 使い方説明
+　[0] 終了
+
+
+■ 入出力ファイル形式
+　・BMP 形式
+　・モノクロ
+　・横：128 pixcel
+　・縦： 96 pixcel
+　・ボトムアップ
+　・非圧縮
+
+　入力データでこれ以外の形式が指定されたときはエラーで弾く。
+
+
+■ アルゴリズム
+□ 基本的な考え方
+　BMP のカラーインデックスデータ（画像データ）を「数値」とみなす。
+
+　画像ファイル → 通し番号 処理は、BMP のカラーインデックスデータ（画像データ）を「数値」と見なして 10 進数化する。
+　通し番号 → 画像ファイル 処理は、通し番号をバイナリ化して、BMP のカラーインデックスデータにはめ込む。
+
+
+□ 内部のデータ形式
+
+typedef struct{		/* ヘッダー部分 その１	*/
+	uint8_t		bfType_1;
+	uint8_t 	bfType_2;
+	uint32_t	bfSize;
+	uint16_t	bfReserved1;
+	uint16_t	bfReserved2;
+	uint32_t	bfOffBits;
+} bitmapfileheader_t;
+
+typedef struct{		/* ヘッダー部分 その２	*/
+	uint32_t	biSize;
+	int32_t		biWidth;
+	int32_t		biHeight;
+	uint16_t	biPlanes;
+	uint16_t	biBitCount;
+	uint32_t	biCompression;
+	uint32_t	biSizeImage;
+	uint32_t	biXPelsPerMeter;
+	uint32_t	biYPelsPerMeter;
+	uint32_t	biClrUsed;
+	uint32_t	biClrImportant;
+	uint8_t		dmy[8];
+} bitmapinfoehader_t;
+
+#define	PM_H_SIZE	128				/* 横サイズ			*/
+#define	PM_V_SIZE	96				/* 縦サイズ			*/
+#define	CIDATA		(PM_H_SIZE * PM_V_SIZE / 8)	/* データ領域の Byte 数		*/
+#define	DW_MAX		(CIDATA / 8)			/* データ領域の DoubleWord 数	*/
+
+typedef struct{				/* データの構造体	*/
+	struct bitmapfileheader_t	bitmapfileheader;
+	struct bitmapinfoehader_t	bitmapinfoehader;
+	uint32_t			color_index_data[CIDATA];
+} pict_data_t;
+
+pict_data_t pict_data;	// インスタンスするときの宣言
+
+
+□ データ領域の確保の仕方・使い方
+(1) 書き込み用データ領域
+	struct pict_data_t を普通にインスタンスする
+	ヘッダー部分は用意した固定値を書き込む。
+	データ部分は、入力データを変換して書き込む
+
+(2) 読み込み用データ
+	struct pict_data_t の２倍以上のデータ領域を確保する
+	ファイルからバッファ領域に取り込む
+	struct pict_data_t
+	先頭アドレスを 
+
+※ このへんから。
+
+
+
+
+
+
+(1) 通し番号検索（画像ファイルを入力して番号を検索）
+　[0] 入力ファイルチェック
+	・BMP であること		bfType_1 = "B", bfType_2 = "M"
+	・H Size が 128 であること	biWidth = 128
+	・V Size が 96 であること	biHeight = 96	（トップダウンであることも含む）
+	・色がモノクロであること	biBitCount = 1
+	・無圧縮であること		biCompression = 0
+
+　[1] インデックスデータの先頭アドレスを取得する。（ファイルの先頭＋bfOffBits）
+　[2] そこから CIDATA 分の数値を数値化する。
+　　[2-1] 総和をクリア
+　　[2-2] 残りバイト数を CIDATA
+　　[2-3] 残りバイト数が 0 より大きいとき、以下の繰り返し
+	[2-3-1] ポインタから 64bit 符号なし整数を取り出す。
+	[2-3-2] ポインタを 8byte 分ずらす
+	[2-3-3] 残りバイト数を -8byte
+	[2-3-4] 総和 = 総和 * (2^8) + 取り出した 64bit 整数（）
+
+
+(2)
+
+
+■ 全体フロー
+□ メニュー
+	動作モード指定
+		1 表現から番号検索
+		2 番号から表現を検索
+
+□	1 表現から番号検索
+ (1) 表現入力
+ (2) エラーチェック
+ (3) 文字列→番号変換
+ (4) 表示（必要に応じてエラーメッセージ）
+
+□	2 番号から表現を検索
+ (1) 番号入力
+ (2) エラーチェック
+ (3) 剰余計算、各桁の番号とする
+ (3) 各桁の番号を文字化
+ (4) 表示
+
+	エラーチェック：
+		番号が小さすぎる ×
+		番号が大きすぎる
+
