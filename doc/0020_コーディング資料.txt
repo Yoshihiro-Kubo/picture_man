@@ -36,8 +36,11 @@
 　通し番号 → 画像ファイル 処理は、通し番号をバイナリ化して、BMP のカラーインデックスデータにはめ込む。
 
 
-□ 内部のデータ形式
+□ BMP データの参考資料
+	https://note.affi-sapo-sv.com/bitmap-file-format.php
+	https://learn.microsoft.com/ja-jp/windows/win32/gdi/bitmap-storage
 
+□ 内部のデータ形式
 typedef struct{		/* ヘッダー部分 その１	*/
 	uint8_t		bfType_1;
 	uint8_t 	bfType_2;
@@ -78,32 +81,52 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 
 □ データ領域の確保の仕方・使い方
 (1) 書き込み用データ領域
-	struct pict_data_t を普通にインスタンスする
+	pict_data_t を普通にインスタンスする
 	ヘッダー部分は用意した固定値を書き込む。
 	データ部分は、入力データを変換して書き込む
 
 (2) 読み込み用データ
 	struct pict_data_t の２倍以上のデータ領域を確保する
 	ファイルからバッファ領域に取り込む
-	struct pict_data_t
-	先頭アドレスを 
-
-※ このへんから。
-
-
-
+		ファイル名入力
+		オープン
+		エラーチェック
+		fread
+		エラーチェック
 
 
+□ 通し番号検索（画像ファイルを入力して番号を検索）
+　[-1] ファイル名入力
+	・Open できなかったらエラー
+	・fread できなかったらエラー
 
-(1) 通し番号検索（画像ファイルを入力して番号を検索）
-　[0] 入力ファイルチェック
+
+　[0] エラーチェック（入力ファイルチェック）
 	・BMP であること		bfType_1 = "B", bfType_2 = "M"
 	・H Size が 128 であること	biWidth = 128
 	・V Size が 96 であること	biHeight = 96	（トップダウンであることも含む）
 	・色がモノクロであること	biBitCount = 1
 	・無圧縮であること		biCompression = 0
 
+
 　[1] インデックスデータの先頭アドレスを取得する。（ファイルの先頭＋bfOffBits）
+	pict_data_t へのポインタを用意
+	バッファの先頭アドレスを上記ポインタに代入。
+	bfOffBits の示すアドレスをデータの先頭として記録
+
+		buf[BUF_SIZE];				/* 読み込みバッファ	*/
+
+		pict_data_t *rd_data;
+
+		rd_data = (pict_data_t *)buf;
+
+		uint64_t	* pm_num;		/* 計算に使うデータ領域の先頭	*/
+		uint8_t		* start_addr;		/* 中間データ			*/
+
+		start_addr = buf + rd_data->bfOffBits;
+		pm_num = (uint64_t *) start_addr;
+
+
 　[2] そこから CIDATA 分の数値を数値化する。
 　　[2-1] 総和をクリア
 　　[2-2] 残りバイト数を CIDATA
@@ -113,9 +136,89 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 	[2-3-3] 残りバイト数を -8byte
 	[2-3-4] 総和 = 総和 * (2^8) + 取り出した 64bit 整数（）
 
+　コード原案
+	総和 = 0;
+	データが残っている間繰り返し
+		総和 = 総和 × 2^64 + 最下位 64bit
 
-(2)
+　具体的コード
+	mpz_t	mp_number;	/* 総和	*/
+	mpz_t	mp_num_temp;
+	mpz_t	mp_2power64;	/* 2^64	*/
+	mpz_t	mp_overflow;	/* 入力データの範囲外	*/
+	mpz_t	mp_mod2p64;	/* 2^64 の剰余		*/
 
+	mpz_init( mp_number );
+	mpz_init( mp_num_temp);
+	mpz_init( mp_2power64 );
+
+
+	mpz_ui_pow_ui( mp_2power64, (unsigned long int) 2, (unsigned long int) 64 );
+	mpz_ui_pow_ui( mp_overflow, (unsigned long int) 2, (unsigned long ing) (PM_H_SIZE * PM_V_SIZE) );
+
+	for( i=0; i<DW_MAX; i++){
+		mpz_mul( mp_num_temp, mp_number, mp_2power64 );		// number * 2^64
+		mpz_add_ui( mp_number, mp_num_temp, pm_num[i] );	// 最下位 64bit 加算
+	}
+
+
+□ 画像　　検索（番号を入力して画像ファイルを出力）
+【概要】
+　[0] 番号入力
+　[1] エラーチェック（範囲チェック）
+　[2] 固定部分生成
+　[2.5] ファイル名入力
+　[3] ファイル生成
+　[4] エラーチェック
+
+【詳細】
+　[0] 番号入力
+	文字列で入力
+
+　[1] エラーチェック（範囲チェック）
+	数値化	mpz_set_str() を使用、返値が -1（0 でない）とき、入力データが不正。
+	範囲チェック	OVER として設定した値より大きいとき、エラー
+		int mpz_cmp (mp_number, mp_overflow) < 0 なら OK、>= 0 のときオーバーフローなのでエラー
+		int mpz_sgn (mp_number) >= 0 なら OK、<0 のとき負なのでエラー
+
+
+　[2] 固定部分生成
+
+	uint8_t wb_header[] = {
+		0x42, 0x4D, 0x3E, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x28, 0x00,
+		0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x02, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00
+	}
+
+	pict_data_t	wt_data;				/* 書き込みバッファ	*/
+	memncpy( &wt_data, wb_header, sizeof(wb_header) );	/* ヘッダーコピー	*/
+
+
+　[2.5] ファイル名入力
+	ファイルをオープンして、エラーだったら抜ける
+
+　[3] 番号生成
+	以下を number がなくなるまで繰り返す{
+		2^64 で割る
+		剰余を出力データの新たな 64bit にする
+		商を新たな number にする
+	}
+
+
+	uint64_t	* pm_num;
+	uint8_t		* start_addr;
+
+	pm_num = (uint64_t *)( ( uint8_t *) &wt_data + 0x3E );	/* カラーインデックスデータ先頭アドレス		*/
+
+	for( i=0; i<DW_MAX; i++){
+		mpz_tdiv_qr( mp_num_temp, mp_mod2p64, mp_number, mp_2power64 );
+		pm_num[i] = mpz_get_ui( mp_mod2p64 );
+		mpz_set( mp_number, mp_num_temp );
+	}
+
+　[4] エラーチェック
+	Close してエラーがあったらメッセージを出す。
 
 ■ 全体フロー
 □ メニュー
@@ -127,16 +230,33 @@ pict_data_t pict_data;	// インスタンスするときの宣言
  (1) 表現入力
  (2) エラーチェック
  (3) 文字列→番号変換
- (4) 表示（必要に応じてエラーメッセージ）
+ (4) 表示
 
 □	2 番号から表現を検索
  (1) 番号入力
  (2) エラーチェック
  (3) 剰余計算、各桁の番号とする
- (3) 各桁の番号を文字化
- (4) 表示
+ (3) 各桁の番号を出力データに埋め込む
+ (4) ファイル出力
 
 	エラーチェック：
-		番号が小さすぎる ×
+		番号が小さすぎる × これはあり得ない。
 		番号が大きすぎる
+
+□ エラー番号、エラーメッセージ
+
+	PM_ERR_ROPEN	1	入力ファイルをオープンできません
+	PM_ERR_READ	2	入力ファイルをリードできません
+	PM_ERR_NOTBMP	3	入力ファイルが BMP 形式ではありません
+	PM_ERR_HSIZE	4	H Size が 128 ではありません
+	PM_ERR_VSIZE	5	V Size が 96 ではありません
+	PM_ERR_BIT	6	色深度が 1 のデータを入力してください
+	PM_ERR_COMP	7	非圧縮形式のデータを入力してください
+
+	PM_ERR_NUM	8	番号が正しい形式ではありません
+	PM_ERR_OVER	9	正の値を入力してください
+	PM_ERR_OVER	10	番号が大きすぎます
+	PM_ERR_WOPEN	11	出力ファイルをオープンできません
+	PM_ERR_WRITE	12	出力ファイルをライトできません
+
 
