@@ -24,17 +24,19 @@
 // エラーメッセージ
 #define	PM_ERR_ROPEN	1	/* 入力ファイルをオープンできません		*/
 #define	PM_ERR_READ	2	/* 入力ファイルをリードできません		*/
-#define	PM_ERR_NOTBMP	3	/* 入力ファイルが BMP 形式ではありません	*/
-#define	PM_ERR_HSIZE	4	/* H Size が 128 ではありません			*/
-#define	PM_ERR_VSIZE	5	/* V Size が 96 ではありません			*/
-#define	PM_ERR_BIT	6	/* 色深度が 1 のデータを入力してください	*/
-#define	PM_ERR_COMP	7	/* 非圧縮形式のデータを入力してください		*/
+#define	PM_ERR_RCLOSE	3	/* 入力ファイルのクローズができませんでした	*/
+#define	PM_ERR_NOTBMP	4	/* 入力ファイルが BMP 形式ではありません	*/
+#define	PM_ERR_HSIZE	5	/* H Size が 128 ではありません			*/
+#define	PM_ERR_VSIZE	6	/* V Size が 96 ではありません			*/
+#define	PM_ERR_BIT	7	/* 色深度が 1 のデータを入力してください	*/
+#define	PM_ERR_COMP	8	/* 非圧縮形式のデータを入力してください		*/
 
-#define	PM_ERR_NUM	8	/* 番号が正しい形式ではありません		*/
-#define	PM_ERR_MINUS	9	/* 正の値を入力してください			*/
-#define	PM_ERR_OVER	10	/* 番号が大きすぎます				*/
-#define	PM_ERR_WOPEN	11	/* 出力ファイルをオープンできません		*/
-#define	PM_ERR_WRITE	12	/* 出力ファイルをライトできません		*/
+#define	PM_ERR_NUM	9	/* 番号が正しい形式ではありません		*/
+#define	PM_ERR_MINUS	10	/* 正の値を入力してください			*/
+#define	PM_ERR_OVER	11	/* 番号が大きすぎます				*/
+#define	PM_ERR_WOPEN	12	/* 出力ファイルをオープンできません		*/
+#define	PM_ERR_WRITE	13	/* 出力ファイルをライトできません		*/
+#define	PM_ERR_WCLOSE	14	/* 出力ファイルがクローズができませんでした	*/
 
 
 // 入出力ファイルのヘッダー形式

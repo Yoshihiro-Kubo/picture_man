@@ -7,7 +7,7 @@
 #include	<stdint.h>
 #include	<unistd.h>
 #include	<libgen.h>
-//#include	<string.h>
+#include	<string.h>
 #include	<gmp.h>
 
 #include	"picture_man.h"
@@ -41,7 +41,7 @@ int pm_end_menu( void ){
 }
 
 int pm_pic_to_num_f( void ){
-	// ファイル入力
+	// 入力ファイル入力
 	// エラーチェック
 	// 絵画データ→番号変換
 	// 出力
@@ -71,6 +71,12 @@ int pm_pic_to_num_f( void ){
 		// ファイル READ
 		if( (infile = fread( inp_buffer, sizeof( uint8_t ), INP_BUFF, fpin ) ) == 0 ){
 			printf( "Err No. %d\t%s\n", PM_ERR_READ, "入力ファイルをリードできません");
+			return -1;
+		}
+
+		// ファイルクローズ
+		if( fclose( fpin ) == EOF ){
+			printf( "Err No. %d\t%s\n", PM_ERR_RCLOSE, "入力ファイルのクローズができませんでした");
 			return -1;
 		}
 
@@ -145,11 +151,10 @@ int pm_pic_to_num_f( void ){
 int pm_num_to_pic_f( void ){
 #if 0
 	// 番号入力
-	// エラーチェック(?)
-	// 剰余の計算による、各文字の決定
-	// エラーチェック（こっちでやった方がいい？）
-	// 表示
-	// 継続・終了メニュー
+	// 出力ファイル名入力
+	// エラーチェック
+	// 画像生成
+	// ファイル出力
 
 	int			input_num;
 	u_int32_t	i, j;
@@ -160,7 +165,7 @@ int pm_num_to_pic_f( void ){
 		// 入力
 		printf( "通し番号を入力してください\n" );
 		fgets( str_buffer, STR_BUFF, stdin );
-		if( debug_mode ){ printf( "通し番号：「%s」\n", inp_buffer ); }						///DBG
+		if( debug_mode ){ printf( "通し番号：「%s」\n", inp_buffer ); }				///DBG
 
 		mpz_t	mp_number;
 		mpz_t	mp_number_bak;
@@ -181,8 +186,8 @@ int pm_num_to_pic_f( void ){
 		}
 		mpz_set( mp_number_bak, mp_number);
 
-		if( debug_mode ){ gmp_printf( "mp_number_max : %Zd, mp_n_size : %Zd\n",  mp_number_max, mp_n_size ); }		///DBG
-		if( debug_mode ){ gmp_printf( "input mp_number : %Zd\n",  mp_number ); }									///DBG
+		if( debug_mode ){ gmp_printf( "mp_number_max : %Zd, mp_n_size : %Zd\n",  mp_number_max, mp_n_size ); }	///DBG
+		if( debug_mode ){ gmp_printf( "input mp_number : %Zd\n",  mp_number ); }				///DBG
 
 		// エラーチェック
 		if( mpz_cmp( mp_number_max, mp_number) <= 0 ){
@@ -195,8 +200,8 @@ int pm_num_to_pic_f( void ){
 			mpz_mod( mp_ka, mp_number, mp_n_size );
 			mpz_tdiv_q( mp_number, mp_number, mp_n_size );
 			ka[i] = mpz_get_ui( mp_ka );
-			if( debug_mode ){ gmp_printf( "post mp_number : %3Zd, mp_ka : %Zd, moji[ka[mp_ka]] : %s\n",				///DBG
-																	mp_ka, mp_number, moji[ka[i]] ); }				///DBG
+			if( debug_mode ){ gmp_printf( "post mp_number : %3Zd, mp_ka : %Zd, moji[ka[mp_ka]] : %s\n",	///DBG
+							mp_ka, mp_number, moji[ka[i]] ); }				///DBG
 			if( ( mpz_get_ui( mp_number ) == 0 ) && ( ka[i] == 0 ) ){
 				for( j=i+1; j<NUM_OF_CHAR; j++ ){
 					ka[j] = 0;
