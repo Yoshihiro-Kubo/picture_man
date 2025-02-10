@@ -12,8 +12,13 @@
 
 #include	"picture_man.h"
 
-uint8_t	inp_buffer[ INP_BUFF ];		// 入力バッファ
-uint8_t	str_buffer[ STR_BUFF ];		// 番号入力用文字バッファ
+uint8_t	inp_buffer[ INP_BUFF ];		// ファイル入力用バッファ
+uint8_t	num_buffer[ NUM_BUFF ];		// 番号入力用バッファ
+uint8_t	str_buffer[ STR_BUFF ];		// 多用途バッファ
+
+// 定数として使用する GNU MP
+mpz_t	mp_2power64;			// 2^64
+mpz_t	mp_overflow;			// 入力データの範囲外
 
 
 int pm_start_menu( void ){
@@ -21,12 +26,12 @@ int pm_start_menu( void ){
 
 	do{
 		printf( "■ 絵画マネージャ\n" );
-		printf( "\t%d : 通し番号検索（ファイルを入力して番号を検索）\n", PM_MODE_P2N  );
-		printf( "\t%d : 文字列　検索（番号を入力してファイルを出力）\n", PM_MODE_N2P  );
-		printf( "\t%d : 使い方説明\n"                                  , PM_MODE_HELP );
-		printf( "\t%d : 終了\n"                                        , PM_MODE_EXIT );
+		printf( "\t%d : 通し番号検索（絵画ファイルを入力して番号を検索）\n", PM_MODE_P2N  );
+		printf( "\t%d : 絵画　　検索（番号を入力して絵画ファイルを出力）\n", PM_MODE_N2P  );
+		printf( "\t%d : 使い方説明\n"                                      , PM_MODE_HELP );
+		printf( "\t%d : 終了\n"                                            , PM_MODE_EXIT );
 		fgets( str_buffer, STR_BUFF, stdin );
-		input_num = atoi( inp_buffer );
+		input_num = atoi( str_buffer );
 		if( debug_mode ){ printf( "入力番号：%d\n", input_num ); }				///DBG
 	} while( ( input_num < PM_MODE_EXIT ) || ( PM_MODE_MAX <= input_num ) );
 	return input_num;
@@ -37,7 +42,7 @@ int pm_end_menu( void ){
 		printf( "\t<Enter> : 継続\n" );
 		printf( "\t0       : 終了（メニュー）\n" );
 		fgets( str_buffer, STR_BUFF, stdin );
-		return atoi( inp_buffer );
+		return atoi( str_buffer );
 }
 
 int pm_pic_to_num_f( void ){
@@ -53,14 +58,26 @@ int pm_pic_to_num_f( void ){
 	printf( "【通し番号検索】\n");
 	do{
 
+		int	length;
+
 		// 入力
 		printf( "入力ファイル名（BMP）を入力してください\n" );
 		fgets( str_buffer, STR_BUFF, stdin );
-		if( debug_mode ){ printf( "入力文字列：「%s」\n", inp_buffer ); }			///DBG
-
+		length = strlen( str_buffer );
+		if( str_buffer[ length -1 ] == '\n' ){ str_buffer[ length -1 ] = '\0'; }		// 改行削除
+		if( debug_mode ){ printf( "入力文字列：「%s」\n", str_buffer ); }			///DBG
+#if 0
+		if( debug_mode ){ 
+			printf( "--------\n");
+			int i=0;
+			do{
+				printf( "%d\t\"%c\"\n", i, str_buffer[i] );
+			}while( str_buffer[++i] != '\0' );
+			printf( "--------\n");
+		}											///DBG
+#endif
 
 		FILE	*fpin;
-		size_t	infile;
 
 		// ファイルオープン
 		if( (fpin = fopen( str_buffer, "rb" ) ) == NULL ){
@@ -69,7 +86,7 @@ int pm_pic_to_num_f( void ){
 		}
 
 		// ファイル READ
-		if( (infile = fread( inp_buffer, sizeof( uint8_t ), INP_BUFF, fpin ) ) == 0 ){
+		if( fread( inp_buffer, sizeof( uint8_t ), INP_BUFF, fpin ) == 0 ){
 			printf( "Err No. %d\t%s\n", PM_ERR_READ, "入力ファイルをリードできません");
 			return -1;
 		}
@@ -112,14 +129,10 @@ int pm_pic_to_num_f( void ){
 		}
 
 
-		mpz_t	mp_2power64;						// 2^64
-		mpz_t	mp_overflow;						// 入力データの範囲外
 		mpz_t	mp_number;						// 総和
 		mpz_t	mp_num_temp;
 		mpz_t	mp_mod2p64;						// 2^64 の剰余
 
-		mpz_ui_pow_ui( mp_2power64, (unsigned long int) 2, (unsigned long int) 64 );
-		mpz_ui_pow_ui( mp_overflow, (unsigned long int) 2, (unsigned long int) (PM_H_SIZE * PM_V_SIZE) );
 		mpz_init( mp_number );
 		mpz_init( mp_num_temp);
 		mpz_init( mp_2power64 );
@@ -134,8 +147,6 @@ int pm_pic_to_num_f( void ){
 
 
 		// 解放
-		mpz_clear( mp_2power64 );					// 2^64
-		mpz_clear( mp_overflow );					// 入力データの範囲外
 		mpz_clear( mp_number );						// 総和
 		mpz_clear( mp_num_temp );
 		mpz_clear( mp_mod2p64 );					// 2^64 の剰余
@@ -144,12 +155,11 @@ int pm_pic_to_num_f( void ){
 		int input_num;
 		input_num = pm_end_menu();
 
-	} while( ( input_num == 0 ) && ( *inp_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力時 false。
+	} while( ( input_num == 0 ) && ( *str_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力時 false。
 }
 
 
 int pm_num_to_pic_f( void ){
-#if 0
 	// 番号入力
 	// 出力ファイル名入力
 	// エラーチェック
@@ -160,97 +170,92 @@ int pm_num_to_pic_f( void ){
 	u_int32_t	i, j;
 	char	*output_mes;
 
-	printf( "【文字列検索】\n");
+	printf( "【絵画　検索】\n");
 	do{
 		// 入力
 		printf( "通し番号を入力してください\n" );
-		fgets( str_buffer, STR_BUFF, stdin );
-		if( debug_mode ){ printf( "通し番号：「%s」\n", inp_buffer ); }				///DBG
+		fgets( num_buffer, NUM_BUFF, stdin );
+		if( debug_mode ){ printf( "通し番号：「%s」\n", num_buffer ); }				///DBG
 
 		mpz_t	mp_number;
-		mpz_t	mp_number_bak;
-		mpz_t	mp_number_max;
-		mpz_t	mp_n_size;
-		mpz_t	mp_ka;
-
+		mpz_t	mp_num_temp;
+		mpz_t	mp_mod2p64;
 		mpz_init( mp_number );
-		mpz_init( mp_number_bak );
-		mpz_init( mp_number_max );
-		mpz_init( mp_n_size );
-		mpz_init( mp_ka );
-		mpz_set_si( mp_n_size, n_size );
-		mpz_ui_pow_ui( mp_number_max, n_size, NUM_OF_CHAR);
-		if( mpz_set_str( mp_number, inp_buffer, 10) <0 ){
-			printf( "Error : 数値以外が指定されています\n" );
+		mpz_init( mp_num_temp );
+		mpz_init( mp_mod2p64 );
+
+		// 変換・チェック
+		if( mpz_set_str( mp_number, num_buffer, 10 ) < 0 ){	// MP 変換
+			printf( "Err No. %d\t%s\n", PM_ERR_NUM, "番号が正しい形式ではありません");
 			return -1;
 		}
-		mpz_set( mp_number_bak, mp_number);
-
-		if( debug_mode ){ gmp_printf( "mp_number_max : %Zd, mp_n_size : %Zd\n",  mp_number_max, mp_n_size ); }	///DBG
-		if( debug_mode ){ gmp_printf( "input mp_number : %Zd\n",  mp_number ); }				///DBG
-
-		// エラーチェック
-		if( mpz_cmp( mp_number_max, mp_number) <= 0 ){
-			printf( "Error : 番号が大きすぎます\n" );
+		if( mpz_sgn (mp_number) < 0 ){				// 符号チェック
+			printf( "Err No. %d\t%s\n", PM_ERR_MINUS, "正の値を入力してください");
+			return -1;
+		}
+		if( mpz_cmp (mp_number, mp_overflow) >= 0 ){		// オーバーフローチェック
+			printf( "Err No. %d\t%s\n", PM_ERR_OVER, "番号が大きすぎます");
 			return -1;
 		}
 
-		// 各文字の決定
-		for( i=0; i<NUM_OF_CHAR; i++ ){
-			mpz_mod( mp_ka, mp_number, mp_n_size );
-			mpz_tdiv_q( mp_number, mp_number, mp_n_size );
-			ka[i] = mpz_get_ui( mp_ka );
-			if( debug_mode ){ gmp_printf( "post mp_number : %3Zd, mp_ka : %Zd, moji[ka[mp_ka]] : %s\n",	///DBG
-							mp_ka, mp_number, moji[ka[i]] ); }				///DBG
-			if( ( mpz_get_ui( mp_number ) == 0 ) && ( ka[i] == 0 ) ){
-				for( j=i+1; j<NUM_OF_CHAR; j++ ){
-					ka[j] = 0;
-				}
-				break;
-			}
-		}
-		if( i < NUM_OF_SENRYU ){
-			output_mes = "[俳句・川柳] 字足らずです";
-		} else if( i == NUM_OF_SENRYU ){
-			output_mes = "[俳句・川柳]";
-		} else if( i <NUM_OF_DODOITSU ){
-			output_mes = "[都々逸] 文字が短すぎます（字足らずで処理します）";
-		} else if( i == NUM_OF_DODOITSU ){
-			output_mes = "[都々逸]";
-		} else if( i <NUM_OF_CHAR ){
-			output_mes = "[短歌] 字足らずです";
-		} else {
-			output_mes = "[短歌]";
+
+		// 出力データ作成
+		pict_data_t	wt_data;				// 書き込みバッファ
+		memcpy( &wt_data, wb_header, sizeof(wb_header) );	// ヘッダーコピー
+
+		uint64_t	* pm_num;
+		uint8_t		* start_addr;
+
+		start_addr = ( uint8_t *) &wt_data + 0x3E;		// カラーインデックスデータ先頭アドレス
+		pm_num = (uint64_t *) start_addr;
+
+		for( i=0; i<DW_MAX; i++){
+			mpz_tdiv_qr( mp_num_temp, mp_mod2p64, mp_number, mp_2power64 );
+			pm_num[i] = mpz_get_ui( mp_mod2p64 );		// 2^64 で割った剰余
+			mpz_set( mp_number, mp_num_temp );		// 2^64 で割った商
 		}
 
-		// 表示
-		mpz_get_str( inp_buffer, 10, mp_number_bak );
-		convert_num_unit( inp_buffer, str_buffer );
-		printf( "\n" );
-		printf( "通し番号　：" );
-		gmp_printf( "%Zd\n", mp_number_bak );
-		printf( "　　　　　：%s\n", str_buffer );
-		printf( "分類　　　：%s\n", output_mes );
-		printf( "文字列　　：" );
-		for( i=0; i<NUM_OF_CHAR; i++ ){
-			printf( "%s", moji[ ka[ i ] ] );
-		}
-		printf( "\n" );
 
-		// 文法チェック
-		grammar_check( ka );
+		int	length;
+
+		// ファイル出力
+		printf( "出力ファイル名（BMP）を入力してください\n" );
+		fgets( str_buffer, STR_BUFF, stdin );
+		length = strlen( str_buffer );
+		if( str_buffer[ length -1 ] == '\n' ){ str_buffer[ length -1 ] = '\0'; }		// 改行削除
+		if( debug_mode ){ printf( "入力文字列：「%s」\n", str_buffer ); }			///DBG
+
+		FILE	*fpout;
+
+		// ファイルオープン
+		if( (fpout = fopen( str_buffer, "wb" ) ) == NULL ){
+			printf( "Err No. %d\t%s\n", PM_ERR_WOPEN, "出力ファイルをオープンできません");
+			return -1;
+		}
+
+		// ファイル WRITE
+		if( (fwrite( &wt_data, sizeof( uint8_t ), sizeof(wt_data), fpout ) ) != sizeof(wt_data) ){
+			printf( "Err No. %d\t%s\n", PM_ERR_WRITE, "出力ファイルをライトできません");
+			return -1;
+		}
+
+		// ファイルクローズ
+		if( fclose( fpout ) == EOF ){
+			printf( "Err No. %d\t%s\n", PM_ERR_WCLOSE, "出力ファイルがクローズができませんでした");
+			return -1;
+		}
+
 
 		// 解放
 		mpz_clear( mp_number );
-		mpz_clear( mp_ka );
-		mpz_clear( mp_n_size );
+		mpz_clear( mp_num_temp );
+
 
 		// 継続・終了メニュー
-		input_num = shiika_end_menu();
+		int	input_num;
+		input_num = pm_end_menu();
 
-	} while( ( input_num == 0 ) && ( *inp_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力時 false。
-#endif
-	pm_end_menu();
+	} while( ( input_num == 0 ) && ( *str_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力}
 }
 
 
@@ -349,6 +354,15 @@ int main( int argc, char*argv[] ){
 		}
 	}
 
+
+	// 定数値設定
+	mpz_ui_pow_ui( mp_2power64, (unsigned long int) 2, (unsigned long int) 64 );
+	mpz_ui_pow_ui( mp_overflow, (unsigned long int) 2, (unsigned long int) (PM_H_SIZE * PM_V_SIZE) );
+	if( debug_mode ){								//DBG
+		gmp_printf( "mp_2power64 = %Zd\n", mp_2power64 );
+		gmp_printf( "mp_overflow = %Zd\n\n", mp_overflow );
+	}
+
 	do{
 		mode = pm_start_menu();
 		switch( mode ){
@@ -368,5 +382,10 @@ int main( int argc, char*argv[] ){
 		}
 	}while( mode != PM_MODE_EXIT );
 	printf( "さようなら\n");
+
+	// 解放
+	mpz_clear( mp_2power64 );		// 2^64
+	mpz_clear( mp_overflow );		// 入力データの範囲外
+
 	return 0;
 }

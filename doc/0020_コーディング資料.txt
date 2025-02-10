@@ -204,10 +204,11 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 	}
 
 
-	uint64_t	* pm_num;
+	uint64_t	* pm_numr;
 	uint8_t		* start_addr;
 
-	pm_num = (uint64_t *)( ( uint8_t *) &wt_data + 0x3E );	/* カラーインデックスデータ先頭アドレス		*/
+	start_addr = ( uint8_t *) &wt_data + 0x3E;	/* カラーインデックスデータ先頭アドレス		*/
+	pm_num = (uint64_t *) start_addr;		/* カラーインデックスデータ先頭アドレス		*/
 
 	for( i=0; i<DW_MAX; i++){
 		mpz_tdiv_qr( mp_num_temp, mp_mod2p64, mp_number, mp_2power64 );

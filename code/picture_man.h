@@ -11,8 +11,9 @@
 #define	CIDATA		(PM_H_SIZE * PM_V_SIZE / 8)	/* データ領域の Byte 数		*/
 #define	DW_MAX		(CIDATA / 8)			/* データ領域の DoubleWord 数	*/
 
-#define	INP_BUFF	(CIDATA * 2)			/* 入力バッファサイズ		*/
-#define	STR_BUFF	9000				/* 文字入力用バッファサイズ	*/
+#define	INP_BUFF	(CIDATA * 2)			/* 入力ファイル用バッファサイズ	*/
+#define	NUM_BUFF	9216				/* 番号入力用バッファサイズ	*/
+#define	STR_BUFF	2048				/* 多用途バッファサイズ		*/
 
 // モード
 #define	PM_MODE_EXIT	0
