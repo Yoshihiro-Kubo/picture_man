@@ -71,9 +71,9 @@ typedef struct{		/* ヘッダー部分 その２	*/
 #define	DW_MAX		(CIDATA / 8)			/* データ領域の DoubleWord 数	*/
 
 typedef struct{				/* データの構造体	*/
-	struct bitmapfileheader_t	bitmapfileheader;
-	struct bitmapinfoehader_t	bitmapinfoehader;
-	uint32_t			color_index_data[CIDATA];
+	bitmapfileheader_t	bitmapfileheader;
+	bitmapinfoehader_t	bitmapinfoehader;
+	uint64_t		color_index_data[CIDATA];
 } pict_data_t;
 
 pict_data_t pict_data;	// インスタンスするときの宣言
@@ -114,16 +114,16 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 	バッファの先頭アドレスを上記ポインタに代入。
 	bfOffBits の示すアドレスをデータの先頭として記録
 
-		buf[BUF_SIZE];				/* 読み込みバッファ	*/
+		inp_buffer[INP_BUFF];				/* 読み込みバッファ	*/
 
 		pict_data_t *rd_data;
 
-		rd_data = (pict_data_t *)buf;
+		rd_data = (pict_data_t *)inp_buffer;
 
-		uint64_t	* pm_num;		/* 計算に使うデータ領域の先頭	*/
-		uint8_t		* start_addr;		/* 中間データ			*/
+		uint64_t	* pm_num;					/* 計算に使うデータ領域の先頭	*/
+		uint8_t		* start_addr;					/* 中間データ			*/
 
-		start_addr = buf + rd_data->bfOffBits;
+		start_addr = inp_buffer + rd_data->bitmapfileheader.bfOffBits;	// 画像データの先頭
 		pm_num = (uint64_t *) start_addr;
 
 
@@ -254,7 +254,7 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 	PM_ERR_COMP	7	非圧縮形式のデータを入力してください
 
 	PM_ERR_NUM	8	番号が正しい形式ではありません
-	PM_ERR_OVER	9	正の値を入力してください
+	PM_ERR_MINUS	9	正の値を入力してください
 	PM_ERR_OVER	10	番号が大きすぎます
 	PM_ERR_WOPEN	11	出力ファイルをオープンできません
 	PM_ERR_WRITE	12	出力ファイルをライトできません
