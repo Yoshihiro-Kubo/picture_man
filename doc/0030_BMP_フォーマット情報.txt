@@ -1,0 +1,151 @@
+BMP ファイル フォーマット
+￣￣￣￣￣￣￣￣￣￣￣￣￣
+
+■ はじめに
+　BMP ファイルフォーマットについて調べる。
+
+
+■ 参考 URL
+	https://note.affi-sapo-sv.com/bitmap-file-format.php
+	https://learn.microsoft.com/ja-jp/windows/win32/gdi/bitmap-storage
+
+
+■ 構造の概要
+(1) ファイルヘッダー		BITMAPFILEHEADER
+(2) 情報ヘッダー		BITMAPINFOHEADER（INFOヘッダー）
+(3) カラーインデックスデータ	
+
+
+■ 構造の詳細
+□ (1) ファイルヘッダー		BITMAPFILEHEADER
+	名前		バイト数	内容
+	bfType		2		"BM"固定
+	bfSize		4		ファイルのバイト数
+	bfReserved1	2		0固定
+	bfReserved2	2		0固定
+	bfOffBits	4		カラーインデックスデータへのオフセット
+
+□ (2) 情報ヘッダー		BITMAPINFOHEADER（INFOヘッダー）
+	名前		バイト数	内容				備考
+	biSize		4		情報ヘッダーのバイト数		40固定
+	biWidth		4		画像の幅	
+	biHeight	4		画像の高さ			正値：ボトムアップ
+									負値：トップダウン
+	biPlanes	2		プレーン数			1固定
+	biBitCount	2		1ピクセルのビット数		0:JPEGやPNG
+									1:1bitインデックス
+									4:4bitインデックス
+									8:8bitインデックス
+									16:RGB(各5bit) または ビットフィールド
+									24:RGBTRIPLE
+									32:RGBQUAD または ビットフィールド
+	biCompression	4		圧縮形式			BI_RGB(0):無圧縮
+									BI_RLE8(1):8bitでRLE圧縮
+									BI_RLE4(2):4bitでRLE圧縮
+									BI_BITFIELDS(3):無圧縮＆カラーマスク有
+									BI_JPEG(4):JPEGデータ
+									BI_PNG(5):PNGデータ
+	biSizeImage	4		画像データのサイズ		biCompressionがBI_RGBのとき
+									0にできる。
+	biXPelsPerMeter	4		横方向の解像度			ピクセル/メートル
+	biYPelsPerMeter	4		縦方向の解像度
+	biClrUsed	4		パレットデータの数		この値が0で
+									biBitCountが1ならパレットデータは 2つ、
+									4なら16、8なら256必要。
+	biClrImportant	4		画像表示に必要な色数		0なら全て
+
+□ (3) カラーインデックスデータ	
+　1ピクセルのビット数が１のときは、パレットのインデックスを上位ビットから順番に1ビット単位でセットしていきます。
+　1バイトにつき、8つのピクセルを表現できます。
+
+
+■ 実ファイルでの状況
+　128×96 ピクセルのモノクロデータ。
+
+ADDRESS 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+000000  42 4D 3E 06 00 00 00 00 00 00 3E 00 00 00 28 00
+000010  00 00 80 00 00 00 60 00 00 00 01 00 01 00 00 00
+000020  00 00 00 00 00 00 12 0B 00 00 12 0B 00 00 02 00
+000030  00 00 00 00 00 00 00 00 00 00 FF FF FF 00 FF FF
+000040  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000050  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000060  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000070  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+		:
+		:
+000580  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000590  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005A0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005B0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005C0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005D0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005E0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005F0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000600  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000610  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000620  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000630  FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000640  
+
+
+■ 実ファイルに解説を入れる
+　128×96 ピクセルのモノクロデータ。
+
+ADDRESS 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+000000  42 4D 3E 06 00 00 00 00 00 00 3E 00 00 00 28 00
+        ~~~~~ ~~~~~~~~~~~ ~~~~~ ~~~~~ ~~~~~~~~~~~ ~~~~~
+        │    │          │    │    │          ↓
+        │    │          │    │    ↓          biSize の 前半
+        │    │          │    │    bfOffBits カラーインデックスデータへの
+        │    │          │    ↓    オフセット 0x28
+        │    │          ↓    bfReserved2 0 固定
+        │    ↓          bfReserved1 0 固定
+        ↓    bfSize 0x63E
+        bfType "BM"
+
+000010  00 00 80 00 00 00 60 00 00 00 01 00 01 00 00 00
+        ~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~ ~~~~~ ~~~~~ ~~~~~
+        │    │          │          │    │    ↓
+        │    │          │          │    ↓    biCompression の前半
+        │    │          │          ↓    biBitCount 1ピクセルのビット数  1:1bitインデックス
+        │    │          ↓          biPlanes プレーン数 1固定
+        │    ↓          biHeight 画像の高さ 0x60 = 96d 正値：ボトムアップ
+        ↓    biWidth 画像の幅 0x80 = 128d
+        biSize 0x28=40d
+
+000020  00 00 00 00 00 00 12 0B 00 00 12 0B 00 00 02 00
+        ~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~ ~~~~~
+        │    │          │          │          ↓
+        │    │          │          ↓          biClrUsed の前半
+        │    │          ↓          biYPelsPerMeter 縦方向の解像度  0x0B12 = 2834d ピクセル/メートル
+        │    ↓          biXPelsPerMeter 横方向の解像度  0x0B12 = 2834d ピクセル/メートル  
+        ↓    biSizeImage 画像データのサイズ  biCompressionがBI_RGBのとき0にできる。(意味不明)
+        biCompression 圧縮形式  BI_RGB(0):無圧縮
+
+000030  00 00 00 00 00 00 00 00 00 00 FF FF FF 00 FF FF
+        ~~~~~ ~~~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~ ~~~~~
+        │    │          │                      ↓
+        │    │          ↓                      カラーインデクスデータの先頭
+        │    ↓          8byte ダミーデータ
+        ↓    biClrImportant 画像表示に必要な色数  0なら全て
+        biClrUsed パレットデータの数  2
+
+000040  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000050  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000060  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000070  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+		:
+		:
+000580  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000590  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005A0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005B0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005C0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005D0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005E0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+0005F0  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000600  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000610  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000620  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000630  FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+000640  
