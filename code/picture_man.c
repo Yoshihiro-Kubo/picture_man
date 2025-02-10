@@ -111,6 +111,32 @@ int pm_pic_to_num_f( void ){
 			printf( "Err No. %d\t%s\n", PM_ERR_NOTBMP, "入力ファイルが BMP 形式ではありません");
 			return -1;
 		}
+
+		if( debug_mode ){												///DBG
+			int	i;
+			uint8_t	*addr = inp_buffer;
+
+			printf( "ADDRESS          00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
+			for( i=0; i<0x40; i++){
+				if( i % 16 == 0) {
+					printf( "\n%016LX:", (long long unsigned int)addr );
+				}
+				printf( "%02X ", *addr++ );
+			}
+			printf( "\n" );
+		}
+
+		// ※ データ形式を意識して構造体を作っても、メンバのアドレスは保証されない。
+		// 狙った位置にメンバは割り当てられていないため、構造体のメンバを指定してのアクセスは不可。
+
+		if( debug_mode ){ printf( "rd_data addr: 0x%LX\n", (long long int)rd_data ); }					///DBG
+		if( debug_mode ){ printf( "H Size  addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biWidth) ); }	///DBG
+		if( debug_mode ){ printf( "H Size : 0x%X\n", rd_data->bitmapinfoehader.biWidth ); }				///DBG
+		if( debug_mode ){ printf( "V Size  addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biHeight) ); }	///DBG
+		if( debug_mode ){ printf( "V Size : 0x%X\n", rd_data->bitmapinfoehader.biHeight ); }				///DBG
+		if( debug_mode ){ printf( "bit     addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biBitCount) ); }	///DBG
+		if( debug_mode ){ printf( "bit    : 0x%X\n", rd_data->bitmapinfoehader.biBitCount ); }				///DBG
+
 		if( rd_data->bitmapinfoehader.biWidth != 128 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_HSIZE, "H Size が 128 ではありません");
 			return -1;
