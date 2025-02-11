@@ -12,6 +12,7 @@
 #define	DW_MAX		(CIDATA / 8)			/* データ領域の DoubleWord 数	*/
 
 #define	INP_BUFF	(CIDATA * 2)			/* 入力ファイル用バッファサイズ	*/
+#define	OUT_BUFF	0x63E				/* 出力ファイル用バッファサイズ	*/
 #define	NUM_BUFF	9216				/* 番号入力用バッファサイズ	*/
 #define	STR_BUFF	2048				/* 多用途バッファサイズ		*/
 
@@ -40,36 +41,14 @@
 #define	PM_ERR_WCLOSE	14	/* 出力ファイルがクローズができませんでした	*/
 
 
-// 入出力ファイルのヘッダー形式
-typedef struct{		/* ヘッダー部分 その１	*/
-	uint8_t		bfType_1;
-	uint8_t 	bfType_2;
-	uint32_t	bfSize;
-	uint16_t	bfReserved1;
-	uint16_t	bfReserved2;
-	uint32_t	bfOffBits;
-} bitmapfileheader_t;
+// BMP データ操作用オフセット値
 
-typedef struct{		/* ヘッダー部分 その２	*/
-	uint32_t	biSize;
-	int32_t		biWidth;
-	int32_t		biHeight;
-	uint16_t	biPlanes;
-	uint16_t	biBitCount;
-	uint32_t	biCompression;
-	uint32_t	biSizeImage;
-	uint32_t	biXPelsPerMeter;
-	uint32_t	biYPelsPerMeter;
-	uint32_t	biClrUsed;
-	uint32_t	biClrImportant;
-	uint8_t		dmy[8];
-} bitmapinfoehader_t;
-
-typedef struct{				/* BMP データの構造体	*/
-	bitmapfileheader_t	bitmapfileheader;
-	bitmapinfoehader_t	bitmapinfoehader;
-	uint64_t		color_index_data[CIDATA];
-} pict_data_t;
+#define	OFFSET_bfType		0x00	/* BMP であること	*/
+#define	OFFSET_biWidth		0x12	/* H Size		*/
+#define	OFFSET_biHeight		0x16	/* V Size		*/
+#define	OFFSET_biBitCount	0x1C	/* 色深度		*/
+#define	OFFSET_biCompression	0x1E	/* 圧縮			*/
+#define	OFFSET_bfOffBits	0x0A	/* カラーインデックスデータへのオフセット*/
 
 
 // 出力バッファ ヘッダー固定部分

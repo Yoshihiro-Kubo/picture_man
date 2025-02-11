@@ -13,6 +13,7 @@
 #include	"picture_man.h"
 
 uint8_t	inp_buffer[ INP_BUFF ];		// ファイル入力用バッファ
+uint8_t	out_buffer[ OUT_BUFF ];		// ファイル出力用バッファ
 uint8_t	num_buffer[ NUM_BUFF ];		// 番号入力用バッファ
 uint8_t	str_buffer[ STR_BUFF ];		// 多用途バッファ
 
@@ -98,20 +99,7 @@ int pm_pic_to_num_f( void ){
 		}
 
 
-		pict_data_t *rd_data = (pict_data_t *)inp_buffer;
-
-		uint64_t	* pm_num;					// 計算に使うデータ領域の先頭
-		uint8_t		* start_addr;					// 中間データ
-
-		start_addr = inp_buffer + rd_data->bitmapfileheader.bfOffBits;	// 画像データの先頭
-		pm_num = (uint64_t *) start_addr;
-
-		// ファイルチェック
-		if( !( rd_data->bitmapfileheader.bfType_1 == 'B' && rd_data->bitmapfileheader.bfType_2 == 'M') ){
-			printf( "Err No. %d\t%s\n", PM_ERR_NOTBMP, "入力ファイルが BMP 形式ではありません");
-			return -1;
-		}
-
+		// デバッグ用 ヘッダー部分ダンプ
 		if( debug_mode ){												///DBG
 			int	i;
 			uint8_t	*addr = inp_buffer;
@@ -126,34 +114,35 @@ int pm_pic_to_num_f( void ){
 			printf( "\n" );
 		}
 
-		// ※ データ形式を意識して構造体を作っても、メンバのアドレスは保証されない。
-		// 狙った位置にメンバは割り当てられていないため、構造体のメンバを指定してのアクセスは不可。
 
-		if( debug_mode ){ printf( "rd_data addr: 0x%LX\n", (long long int)rd_data ); }					///DBG
-		if( debug_mode ){ printf( "H Size  addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biWidth) ); }	///DBG
-		if( debug_mode ){ printf( "H Size : 0x%X\n", rd_data->bitmapinfoehader.biWidth ); }				///DBG
-		if( debug_mode ){ printf( "V Size  addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biHeight) ); }	///DBG
-		if( debug_mode ){ printf( "V Size : 0x%X\n", rd_data->bitmapinfoehader.biHeight ); }				///DBG
-		if( debug_mode ){ printf( "bit     addr: 0x%LX\n", (long long int)&(rd_data->bitmapinfoehader.biBitCount) ); }	///DBG
-		if( debug_mode ){ printf( "bit    : 0x%X\n", rd_data->bitmapinfoehader.biBitCount ); }				///DBG
-
-		if( rd_data->bitmapinfoehader.biWidth != 128 ) {
+		// ファイルチェック
+		if( strncmp( inp_buffer, "BM", 2) != 0) {
+			printf( "Err No. %d\t%s\n", PM_ERR_NOTBMP, "入力ファイルが BMP 形式ではありません");
+			return -1;
+		}
+		if( *((uint32_t *)(inp_buffer + OFFSET_biWidth)) != 128 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_HSIZE, "H Size が 128 ではありません");
 			return -1;
 		}
-		if( rd_data->bitmapinfoehader.biHeight != 96 ) {
+		if( *((uint32_t *)(inp_buffer + OFFSET_biHeight)) != 96 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_VSIZE, "V Size が 96 ではありません");
 			return -1;
 		}
-		if( rd_data->bitmapinfoehader.biBitCount != 1 ) {
+		if( *((uint16_t *)(inp_buffer + OFFSET_biBitCount)) != 1 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_BIT, "色深度が 1 のデータを入力してください");
 			return -1;
 		}
-		if( rd_data->bitmapinfoehader.biCompression != 0 ) {
+		if( *((uint32_t *)(inp_buffer + OFFSET_biCompression)) != 0 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_COMP, "非圧縮形式のデータを入力してください");
 			return -1;
 		}
 
+
+		uint64_t	* pm_num;					// 計算に使うデータ領域の先頭
+		uint8_t		* start_addr;					// 中間データ
+
+		start_addr = inp_buffer + *((uint32_t *)(inp_buffer + OFFSET_bfOffBits));	// カラーインデックスデータの先頭アドレス
+		pm_num = (uint64_t *) start_addr;
 
 		mpz_t	mp_number;						// 総和
 		mpz_t	mp_num_temp;
@@ -226,14 +215,14 @@ int pm_num_to_pic_f( void ){
 
 
 		// 出力データ作成
-		pict_data_t	wt_data;				// 書き込みバッファ
-		memcpy( &wt_data, wb_header, sizeof(wb_header) );	// ヘッダーコピー
 
 		uint64_t	* pm_num;
 		uint8_t		* start_addr;
 
-		start_addr = ( uint8_t *) &wt_data + 0x3E;		// カラーインデックスデータ先頭アドレス
-		pm_num = (uint64_t *) start_addr;
+		memcpy( out_buffer, wb_header, sizeof(wb_header) );	// ヘッダーコピー
+
+		start_addr = out_buffer + 0x3E;		// カラーインデックスデータ先頭アドレス
+		pm_num = (uint64_t *) start_addr;	// 64bit 幅の配列
 
 		for( i=0; i<DW_MAX; i++){
 			mpz_tdiv_qr( mp_num_temp, mp_mod2p64, mp_number, mp_2power64 );
@@ -260,7 +249,7 @@ int pm_num_to_pic_f( void ){
 		}
 
 		// ファイル WRITE
-		if( (fwrite( &wt_data, sizeof( uint8_t ), sizeof(wt_data), fpout ) ) != sizeof(wt_data) ){
+		if( (fwrite( out_buffer, sizeof( uint8_t ), OUT_BUFF, fpout ) ) != OUT_BUFF ){
 			printf( "Err No. %d\t%s\n", PM_ERR_WRITE, "出力ファイルをライトできません");
 			return -1;
 		}
