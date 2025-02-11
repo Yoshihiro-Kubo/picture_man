@@ -28,7 +28,7 @@ void dbg_memdump( uint8_t *address, unsigned int byte ){
 	uint8_t	*addr = address;
 
 	printf( "ADDRESS          00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
-	for( i=0; i<0x40; i++){
+	for( i=0; i<byte; i++){
 		if( i % 16 == 0) {
 			printf( "\n%016LX:", (long long unsigned int)addr );
 		}
