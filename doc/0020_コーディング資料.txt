@@ -139,18 +139,15 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 
 
 　[2] そこから CIDATA 分の数値を数値化する。
-　　[2-1] 総和をクリア
-　　[2-2] 残りバイト数を CIDATA
-　　[2-3] 残りバイト数が 0 より大きいとき、以下の繰り返し
-	[2-3-1] ポインタから 64bit 符号なし整数を取り出す。
-	[2-3-2] ポインタを 8byte 分ずらす
-	[2-3-3] 残りバイト数を -8byte
-	[2-3-4] 総和 = 総和 * (2^8) + 取り出した 64bit 整数（）
+　　画像データ領域を 64bit 単位で区切る。
+　　192×96÷64 = 192（DW_MAX） 個の領域に分かれる。
 
-　コード原案
-	総和 = 0;
-	データが残っている間繰り返し
-		総和 = 総和 × 2^64 + 最下位 64bit
+　　[2-1] 総和をクリア
+　　[2-2] DW_MAX 個のデータの上位側から 0 版まで以下の繰り返し。
+	[2-2-1] 中間データ = 総和× 2^64
+	[2-2-2] 総和 = 中間データ + 取り出した現在の 64bit 整数
+	[2-2-3] 現在の 64bit 整数へのポインタ更新
+
 
 　具体的コード
 	mpz_t	mp_number;	/* 総和	*/
@@ -167,7 +164,7 @@ pict_data_t pict_data;	// インスタンスするときの宣言
 	mpz_ui_pow_ui( mp_2power64, (unsigned long int) 2, (unsigned long int) 64 );
 	mpz_ui_pow_ui( mp_overflow, (unsigned long int) 2, (unsigned long ing) (PM_H_SIZE * PM_V_SIZE) );
 
-	for( i=0; i<DW_MAX; i++){
+	for( i=DW_MAX-1; 0<=i; i--){
 		mpz_mul( mp_num_temp, mp_number, mp_2power64 );		// number * 2^64
 		mpz_add_ui( mp_number, mp_num_temp, pm_num[i] );	// 最下位 64bit 加算
 	}

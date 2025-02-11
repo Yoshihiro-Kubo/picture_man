@@ -115,8 +115,8 @@ int pm_pic_to_num_f( void ){
 		}
 
 
-		// デバッグ用 ヘッダー部分ダンプ
-		if( debug_mode ){ dbg_memdump( inp_buffer, 0x40 ); }					///DBG
+		// デバッグ用 入力ファイル
+		if( debug_mode ){ dbg_memdump( inp_buffer, OUT_BUFF ); }					///DBG
 
 
 		// ファイルチェック
@@ -156,9 +156,12 @@ int pm_pic_to_num_f( void ){
 		mpz_init( mp_num_temp);
 		mpz_init( mp_mod2p64 );
 
-		for( int i=0; i<DW_MAX; i++){
+		for( int i=DW_MAX-1; 0<=i; i--){
 			mpz_mul( mp_num_temp, mp_number, mp_2power64 );		// number * 2^64
 			mpz_add_ui( mp_number, mp_num_temp, pm_num[i] );	// 最下位 64bit 加算
+			if( debug_mode){ printf( "pm_num[%d]=%016LX\n", i, (long long unsigned int)pm_num[i] );}	///DBG
+			if( debug_mode){ gmp_printf( "mp_number =%Zd\n", mp_number ); }				///DBG
+			if( debug_mode){ fgets( str_buffer, STR_BUFF, stdin ); }				///DBG
 		}
 
 		printf( "通し番号　：" );
@@ -377,10 +380,12 @@ int main( int argc, char*argv[] ){
 	// 定数値設定
 	mpz_ui_pow_ui( mp_2power64, (unsigned long int) 2, (unsigned long int) 64 );
 	mpz_ui_pow_ui( mp_overflow, (unsigned long int) 2, (unsigned long int) (PM_H_SIZE * PM_V_SIZE) );
+#if 0
 	if( debug_mode ){								//DBG
 		gmp_printf( "mp_2power64 = %Zd\n", mp_2power64 );
 		gmp_printf( "mp_overflow = %Zd\n\n", mp_overflow );
 	}
+#endif
 
 	do{
 		mode = pm_start_menu();
