@@ -22,6 +22,22 @@ mpz_t	mp_2power64;			// 2^64
 mpz_t	mp_overflow;			// 入力データの範囲外
 
 
+// デバッグ用メモリダンプルーチン
+void dbg_memdump( uint8_t *address, unsigned int byte ){
+	int	i;
+	uint8_t	*addr = address;
+
+	printf( "ADDRESS          00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
+	for( i=0; i<0x40; i++){
+		if( i % 16 == 0) {
+			printf( "\n%016LX:", (long long unsigned int)addr );
+		}
+		printf( "%02X ", *addr++ );
+	}
+	printf( "\n" );
+}
+
+
 int pm_start_menu( void ){
 	int		input_num;
 
@@ -100,19 +116,7 @@ int pm_pic_to_num_f( void ){
 
 
 		// デバッグ用 ヘッダー部分ダンプ
-		if( debug_mode ){												///DBG
-			int	i;
-			uint8_t	*addr = inp_buffer;
-
-			printf( "ADDRESS          00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
-			for( i=0; i<0x40; i++){
-				if( i % 16 == 0) {
-					printf( "\n%016LX:", (long long unsigned int)addr );
-				}
-				printf( "%02X ", *addr++ );
-			}
-			printf( "\n" );
-		}
+		if( debug_mode ){ dbg_memdump( inp_buffer, 0x40 ); }					///DBG
 
 
 		// ファイルチェック
