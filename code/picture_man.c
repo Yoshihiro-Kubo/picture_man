@@ -150,7 +150,7 @@ int pm_pic_to_num_f( void ){
 
 		mpz_init( mp_number );
 		mpz_init( mp_num_temp);
-		mpz_init( mp_2power64 );
+		mpz_init( mp_mod2p64 );
 
 		for( int i=0; i<DW_MAX; i++){
 			mpz_mul( mp_num_temp, mp_number, mp_2power64 );		// number * 2^64
