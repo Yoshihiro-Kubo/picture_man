@@ -267,6 +267,8 @@ int pm_num_to_pic_f( void ){
 			return -1;
 		}
 
+		printf( "\n" );
+		printf( "絵画データファイル \"%s\" を生成しました\n", str_buffer );
 
 		// 解放
 		mpz_clear( mp_number );
