@@ -62,7 +62,7 @@ int pm_end_menu( void ){
 		return atoi( str_buffer );
 }
 
-int pm_pic_to_num_f( void ){
+void pm_pic_to_num_f( void ){
 	// 入力ファイル入力
 	// エラーチェック
 	// 絵画データ→番号変換
@@ -98,20 +98,23 @@ int pm_pic_to_num_f( void ){
 
 		// ファイルオープン
 		if( (fpin = fopen( str_buffer, "rb" ) ) == NULL ){
-			printf( "Err No. %d\t%s\n", PM_ERR_ROPEN, "入力ファイルをオープンできません");
-			return -1;
+			printf( "Err No. %d\t入力ファイル \"%s\" をオープンできません\n", PM_ERR_ROPEN, str_buffer);
+			input_num = pm_end_menu();
+			continue;
 		}
 
 		// ファイル READ
 		if( fread( inp_buffer, sizeof( uint8_t ), INP_BUFF, fpin ) == 0 ){
 			printf( "Err No. %d\t%s\n", PM_ERR_READ, "入力ファイルをリードできません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 		// ファイルクローズ
 		if( fclose( fpin ) == EOF ){
 			printf( "Err No. %d\t%s\n", PM_ERR_RCLOSE, "入力ファイルのクローズができませんでした");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 
@@ -122,23 +125,28 @@ int pm_pic_to_num_f( void ){
 		// ファイルチェック
 		if( strncmp( inp_buffer, "BM", 2) != 0) {
 			printf( "Err No. %d\t%s\n", PM_ERR_NOTBMP, "入力ファイルが BMP 形式ではありません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( *((uint32_t *)(inp_buffer + OFFSET_biWidth)) != 128 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_HSIZE, "H Size が 128 ではありません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( *((uint32_t *)(inp_buffer + OFFSET_biHeight)) != 96 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_VSIZE, "V Size が 96 ではありません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( *((uint16_t *)(inp_buffer + OFFSET_biBitCount)) != 1 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_BIT, "色深度が 1 のデータを入力してください");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( *((uint32_t *)(inp_buffer + OFFSET_biCompression)) != 0 ) {
 			printf( "Err No. %d\t%s\n", PM_ERR_COMP, "非圧縮形式のデータを入力してください");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 
@@ -174,22 +182,21 @@ int pm_pic_to_num_f( void ){
 		mpz_clear( mp_mod2p64 );					// 2^64 の剰余
 
 		// 継続・終了メニュー
-		int input_num;
 		input_num = pm_end_menu();
 
 	} while( ( input_num == 0 ) && ( *str_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力時 false。
 }
 
 
-int pm_num_to_pic_f( void ){
+void pm_num_to_pic_f( void ){
 	// 番号入力
 	// 出力ファイル名入力
 	// エラーチェック
 	// 画像生成
 	// ファイル出力
 
-	int			input_num;
-	u_int32_t	i, j;
+	int		input_num;
+	u_int32_t	i;
 	char	*output_mes;
 
 	printf( "【絵画　検索】\n");
@@ -209,15 +216,18 @@ int pm_num_to_pic_f( void ){
 		// 変換・チェック
 		if( mpz_set_str( mp_number, num_buffer, 10 ) < 0 ){	// MP 変換
 			printf( "Err No. %d\t%s\n", PM_ERR_NUM, "番号が正しい形式ではありません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( mpz_sgn (mp_number) < 0 ){				// 符号チェック
 			printf( "Err No. %d\t%s\n", PM_ERR_MINUS, "正の値を入力してください");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 		if( mpz_cmp (mp_number, mp_overflow) >= 0 ){		// オーバーフローチェック
 			printf( "Err No. %d\t%s\n", PM_ERR_OVER, "番号が大きすぎます");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 
@@ -252,19 +262,22 @@ int pm_num_to_pic_f( void ){
 		// ファイルオープン
 		if( (fpout = fopen( str_buffer, "wb" ) ) == NULL ){
 			printf( "Err No. %d\t%s\n", PM_ERR_WOPEN, "出力ファイルをオープンできません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 		// ファイル WRITE
 		if( (fwrite( out_buffer, sizeof( uint8_t ), OUT_BUFF, fpout ) ) != OUT_BUFF ){
 			printf( "Err No. %d\t%s\n", PM_ERR_WRITE, "出力ファイルをライトできません");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 		// ファイルクローズ
 		if( fclose( fpout ) == EOF ){
 			printf( "Err No. %d\t%s\n", PM_ERR_WCLOSE, "出力ファイルがクローズができませんでした");
-			return -1;
+			input_num = pm_end_menu();
+			continue;
 		}
 
 		printf( "\n" );
@@ -276,7 +289,6 @@ int pm_num_to_pic_f( void ){
 
 
 		// 継続・終了メニュー
-		int	input_num;
 		input_num = pm_end_menu();
 
 	} while( ( input_num == 0 ) && ( *str_buffer != '0' ) );		// 空打ちのとき true、継続。　本当に 0 入力}
