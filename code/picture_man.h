@@ -6,6 +6,8 @@
 
 
 // Define
+#define	VERSION		"1.00"				/* バージョン番号		*/
+
 #define	PM_H_SIZE	128				/* 横サイズ			*/
 #define	PM_V_SIZE	96				/* 縦サイズ			*/
 #define	CIDATA		(PM_H_SIZE * PM_V_SIZE / 8)	/* データ領域の Byte 数		*/

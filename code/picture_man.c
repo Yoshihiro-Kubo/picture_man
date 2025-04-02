@@ -42,7 +42,7 @@ int pm_start_menu( void ){
 	int		input_num;
 
 	do{
-		printf( "■ 絵画マネージャ\n" );
+		printf( "■ 絵画マネージャ  Version %s\n", VERSION );
 		printf( "\t%d : 通し番号検索（絵画ファイルを入力して番号を検索）\n", PM_MODE_P2N  );
 		printf( "\t%d : 絵画　　検索（番号を入力して絵画ファイルを出力）\n", PM_MODE_N2P  );
 		printf( "\t%d : 使い方説明\n"                                      , PM_MODE_HELP );
